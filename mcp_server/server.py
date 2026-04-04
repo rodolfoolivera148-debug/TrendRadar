@@ -5,6 +5,26 @@ TrendRadar MCP Server - FastMCP 2.0 实现
 支持 stdio 和 HTTP 两种传输模式。
 """
 
+# ============================================================
+# CRITICAL: Redirect ALL print() calls to stderr.
+# MCP stdio transport uses stdout exclusively for JSON-RPC.
+# Any stray print() to stdout corrupts the protocol and causes
+# "v3Schema.safeParse is not a function" / timeout errors on
+# the Node.js MCP client side.
+# ============================================================
+import sys
+import builtins
+
+_original_print = builtins.print
+
+def _stderr_print(*args, **kwargs):
+    """Override print() to default to stderr, keeping stdout clean for MCP."""
+    kwargs.setdefault('file', sys.stderr)
+    _original_print(*args, **kwargs)
+
+builtins.print = _stderr_print
+# ============================================================
+
 import asyncio
 import json
 from typing import List, Optional, Dict, Union
@@ -1132,73 +1152,38 @@ def run_server(
     # 初始化工具实例
     _get_tools(project_root)
 
-    # 打印启动信息
-    print()
-    print("=" * 60)
-    print("  TrendRadar MCP Server - FastMCP 2.0")
-    print("=" * 60)
-    print(f"  传输模式: {transport.upper()}")
+    # 打印启动信息 (仅在非 stdio 模式下打印，保留 stdio 纯净性)
+    if transport != 'stdio':
+        print()
+        print("=" * 60)
+        print("  TrendRadar MCP Server - FastMCP 2.0")
+        print("=" * 60)
+        print(f"  传输模式: {transport.upper()}")
 
-    if transport == 'stdio':
-        print("  协议: MCP over stdio (标准输入输出)")
-        print("  说明: 通过标准输入输出与 MCP 客户端通信")
-    elif transport == 'http':
-        print(f"  协议: MCP over HTTP (生产环境)")
-        print(f"  服务器监听: {host}:{port}")
+        if transport == 'stdio':
+            print("  协议: MCP over stdio (标准输入输出)")
+            print("  说明: 通过标准输入输出与 MCP 客户端通信")
+        elif transport == 'http':
+            print(f"  协议: MCP over HTTP (生产环境)")
+            print(f"  服务器监听: {host}:{port}")
 
-    if project_root:
-        print(f"  项目目录: {project_root}")
-    else:
-        print("  项目目录: 当前目录")
+        if project_root:
+            print(f"  项目目录: {project_root}")
+        else:
+            print("  项目目录: 当前目录")
 
-    print()
-    print("  已注册的工具:")
-    print("    === 日期解析工具（推荐优先调用）===")
-    print("    0. resolve_date_range       - 解析自然语言日期为标准格式")
-    print()
-    print("    === 基础数据查询（P0核心）===")
-    print("    1. get_latest_news        - 获取最新新闻")
-    print("    2. get_news_by_date       - 按日期查询新闻（支持自然语言）")
-    print("    3. get_trending_topics    - 获取趋势话题（支持自动提取）")
-    print()
-    print("    === RSS 数据查询 ===")
-    print("    4. get_latest_rss         - 获取最新 RSS 订阅数据")
-    print("    5. search_rss             - 搜索 RSS 数据")
-    print("    6. get_rss_feeds_status   - 获取 RSS 源状态")
-    print()
-    print("    === 智能检索工具 ===")
-    print("    7. search_news            - 统一新闻搜索（关键词/模糊/实体）")
-    print("    8. find_related_news      - 相关新闻查找（支持历史数据）")
-    print()
-    print("    === 高级数据分析 ===")
-    print("    9. analyze_topic_trend      - 统一话题趋势分析（热度/生命周期/爆火/预测）")
-    print("    10. analyze_data_insights   - 统一数据洞察分析（平台对比/活跃度/关键词共现）")
-    print("    11. analyze_sentiment       - 情感倾向分析")
-    print("    12. aggregate_news          - 跨平台新闻聚合去重")
-    print("    13. compare_periods         - 时期对比分析（周环比/月环比）")
-    print("    14. generate_summary_report - 每日/每周摘要生成")
-    print()
-    print("    === 配置与系统管理 ===")
-    print("    15. get_current_config      - 获取当前系统配置")
-    print("    16. get_system_status       - 获取系统运行状态")
-    print("    17. check_version           - 检查版本更新（对比本地与远程版本）")
-    print("    18. trigger_crawl           - 手动触发爬取任务")
-    print()
-    print("    === 存储同步工具 ===")
-    print("    19. sync_from_remote        - 从远程存储拉取数据到本地")
-    print("    20. get_storage_status      - 获取存储配置和状态")
-    print("    21. list_available_dates    - 列出本地/远程可用日期")
-    print()
-    print("    === 文章内容读取 ===")
-    print("    22. read_article            - 读取单篇文章内容（Markdown格式）")
-    print("    23. read_articles_batch     - 批量读取多篇文章（自动限速）")
-    print()
-    print("    === 通知推送工具 ===")
-    print("    24. get_channel_format_guide  - 获取渠道格式化策略指南（提示词）")
-    print("    25. get_notification_channels - 获取已配置的通知渠道状态")
-    print("    26. send_notification         - 向通知渠道发送消息（自动适配格式）")
-    print("=" * 60)
-    print()
+        print()
+        print("  已注册的工具:")
+        print("    === 日期解析工具（推荐优先调用）===")
+        print("    0. resolve_date_range       - 解析自然语言日期为标准格式")
+        print()
+        print("    === 基础 data 数据服务 ===")
+        print("    1. get_latest_news")
+        print("    2. get_trending_topics")
+        print("    3. get_news_by_date")
+        print("    ...")
+        print("=" * 60)
+        print()
 
     # 根据传输模式运行服务器
     if transport == 'stdio':

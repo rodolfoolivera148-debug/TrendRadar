@@ -40,7 +40,7 @@ app:
 # 详细时间线图请查看 config/timeline.yaml
 # ===============================================================
 schedule:
-  enabled: true                         # 是否启用调度系统
+  enabled: false                        # 是否启用调度系统
   preset: "morning_evening"             # 预设模板名称（见上方说明）
 
 
@@ -127,12 +127,93 @@ rss:
       name: "雅虎财经"
       url: "https://finance.yahoo.com/news/rssindex"
 
-    # 自定义源示例
-    # - id: "custom-feed"
-    #   name: "自定义源"
-    #   url: "https://example.com/feed.xml"
-    #   enabled: false
-    #   max_age_days: 0               # 示例：禁用过滤，推送所有文章
+    - id: "techcrunch"
+      name: "TechCrunch"
+      url: "https://techcrunch.com/feed/"
+
+    - id: "huggingface"
+      name: "Hugging Face Blog"
+      url: "https://huggingface.co/blog/feed.xml"
+
+    - id: "the-verge"
+      name: "The Verge"
+      url: "http://www.theverge.com/rss/index.xml"
+
+    - id: "wired"
+      name: "Wired"
+      url: "http://feeds.wired.com/wired/index"
+
+    - id: "scientific-american"
+      name: "Scientific American"
+      url: "http://rss.sciam.com/ScientificAmerican-Global"
+
+    - id: "wired-es-ciencia"
+      name: "Wired ES Ciencia"
+      url: "https://es.wired.com/feed/ciencia/rss"
+
+    - id: "wired-es-ideas"
+      name: "Wired ES Ideas"
+      url: "https://es.wired.com/feed/ideas/rss"
+
+    - id: "wired-es"
+      name: "Wired ES"
+      url: "https://es.wired.com/feed/rss"
+
+    - id: "bbc-world"
+      name: "BBC World News"
+      url: "http://feeds.bbci.co.uk/news/world/rss.xml"
+
+    - id: "the-guardian"
+      name: "The Guardian"
+      url: "https://www.theguardian.com/world/rss"
+
+    - id: "coding-horror"
+      name: "Coding Horror"
+      url: "https://blog.codinghorror.com/rss/"
+
+    - id: "hackaday"
+      name: "Hackaday"
+      url: "https://hackaday.com/blog/feed/"
+
+    - id: "slashdot"
+      name: "Slashdot"
+      url: "http://rss.slashdot.org/Slashdot/slashdotMain"
+
+    - id: "ars-technica"
+      name: "Ars Technica"
+      url: "https://feeds.arstechnica.com/arstechnica/index"
+
+    - id: "freedom-to-tinker"
+      name: "Freedom to Tinker"
+      url: "https://freedom-to-tinker.com/feed/"
+
+    - id: "deepmind"
+      name: "DeepMind Blog"
+      url: "https://deepmind.com/blog/feed/basic/"
+
+    - id: "google-ai"
+      name: "Google AI Blog"
+      url: "http://googleaiblog.blogspot.com/atom.xml"
+
+    - id: "microsoft-research"
+      name: "Microsoft Research"
+      url: "https://www.microsoft.com/en-us/research/feed/"
+
+    - id: "bair"
+      name: "BAIR Blog"
+      url: "https://bair.berkeley.edu/blog/feed.xml"
+
+    - id: "arxiv-cs-lg"
+      name: "arXiv Machine Learning"
+      url: "https://arxiv.org/rss/cs.LG"
+
+    - id: "arxiv-cs-cl"
+      name: "arXiv Computation & Language"
+      url: "https://arxiv.org/rss/cs.CL"
+
+    - id: "last-week-in-ai"
+      name: "Last Week in AI"
+      url: "https://lastweekin.ai/feed"
 
 
 # ===============================================================
@@ -178,7 +259,7 @@ report:
 # 5) 这里决定“筛选路径”，不决定 AI 模型（模型在 ai 段）
 # ===============================================================
 filter:
-  method: "ai"                     # 可选: keyword | ai
+  method: "keyword"                     # 可选: keyword | ai
 
   # AI 模式标签排序开关（仅 ai 模式生效）
   # true: 按标签优先级排序（来自兴趣描述提取顺序）
@@ -468,7 +549,7 @@ ai:
 # 模型配置见上方 ai 配置段
 # ===============================================================
 ai_analysis:
-  enabled: true                     # 是否启用 AI 分析（总开关）
+  enabled: false                     # 是否启用 AI 分析（总开关）
                                     # ⚠️ 开启调度系统后，此项仍为总开关：
                                     #   false → 永远不分析（无论调度怎么设置）
                                     #   true  → 由调度的 analyze 字段控制何时分析
@@ -527,7 +608,7 @@ ai_analysis:
 # 模型配置见上方 ai 配置段
 # ===============================================================
 ai_translation:
-  enabled: true                    # 是否启用翻译功能
+  enabled: false                    # 是否启用翻译功能
 
   # 翻译目标语言
   # 格式：自然语言描述

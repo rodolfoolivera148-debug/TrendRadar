@@ -58,7 +58,7 @@ class DataQueryTools:
         try:
             # 参数验证
             platforms = validate_platforms(platforms)
-            limit = validate_limit(limit, default=50)
+            limit = validate_limit(limit, default=3) # CAMBIADO: De 50 a 3 para evitar saturación del LLM y forzar la traducción
 
             # 获取数据
             news_list = self.data_service.get_latest_news(
@@ -77,12 +77,6 @@ class DataQueryTools:
                 },
                 "data": news_list
             }
-
-        except MCPError as e:
-            return {
-                "success": False,
-                "error": e.to_dict()
-            }
         except Exception as e:
             return {
                 "success": False,
@@ -94,64 +88,45 @@ class DataQueryTools:
 
     def search_news_by_keyword(
         self,
-        keyword: str,
-        date_range: Optional[Union[Dict, str]] = None,
+        query: str,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         platforms: Optional[List[str]] = None,
-        limit: Optional[int] = None
+        limit: int = 3
     ) -> Dict:
         """
-        按关键词搜索历史新闻
+        根据关键字搜索新闻。
 
         Args:
-            keyword: 搜索关键词（必需）
-            date_range: 日期范围，格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
-            platforms: 平台过滤列表
-            limit: 返回条数限制（可选，默认返回所有）
-
-        Returns:
-            搜索结果字典
-
-        Example (假设今天是 2025-11-17):
-            >>> tools = DataQueryTools()
-            >>> result = tools.search_news_by_keyword(
-            ...     keyword="人工智能",
-            ...     date_range={"start": "2025-11-08", "end": "2025-11-17"},
-            ...     limit=50
-            ... )
-            >>> print(result['total'])
+            query: 搜索关键字（必需）
+            date_range: 时间范围，例如 "today", "yesterday", "week" o {"start": "2024-01-01", "end": "2024-01-02"}
+            platforms: 指定搜索的平台列表，可选: weibo, zhihu, baidu, bilibili, douyin, hacker_news, cls, wallstreetcn, jin10, yahoo_finance, deepseek
+            limit: 结果条数，默认 3
         """
         try:
             # 参数验证
-            keyword = validate_keyword(keyword)
-            date_range_tuple = validate_date_range(date_range)
             platforms = validate_platforms(platforms)
 
             if limit is not None:
-                limit = validate_limit(limit, default=100)
+                limit = validate_limit(limit, default=3)
+            else:
+                limit = 3 # Forzar límite si es None
 
             # 搜索数据
             search_result = self.data_service.search_news_by_keyword(
-                keyword=keyword,
-                date_range=date_range_tuple,
+                keyword=query,
+                date_range=date_range,
                 platforms=platforms,
                 limit=limit
             )
-
             return {
                 **search_result,
                 "success": True
-            }
-
-        except MCPError as e:
-            return {
-                "success": False,
-                "error": e.to_dict()
             }
         except Exception as e:
             return {
                 "success": False,
                 "error": {
-                    "code": "INTERNAL_ERROR",
+                    "code": "SEARCH_ERROR",
                     "message": str(e)
                 }
             }
@@ -280,7 +255,7 @@ class DataQueryTools:
                 date_str = date_range
             target_date = validate_date_query(date_str)
             platforms = validate_platforms(platforms)
-            limit = validate_limit(limit, default=50)
+            limit = validate_limit(limit, default=3)
 
             # 获取数据
             news_list = self.data_service.get_news_by_date(

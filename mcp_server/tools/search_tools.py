@@ -33,7 +33,7 @@ class SearchTools:
         search_mode: str = "keyword",
         date_range: Optional[Union[Dict[str, str], str]] = None,
         platforms: Optional[List[str]] = None,
-        limit: int = 50,
+        limit: int = 3,  # CAMBIADO A 3 POR DEFECTO PARA PREVENIR SATURACIÓN DEL LLM
         sort_by: str = "relevance",
         threshold: float = 0.6,
         include_url: bool = False,
