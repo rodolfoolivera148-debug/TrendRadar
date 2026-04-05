@@ -114,7 +114,8 @@ class AnalyticsTools:
         topic: Optional[str] = None,
         date_range: Optional[Union[Dict[str, str], str]] = None,
         min_frequency: int = 3,
-        top_n: int = 20
+        top_n: int = 20,
+        limit: Optional[int] = None
     ) -> Dict:
         """
         统一数据洞察分析工具 - 整合多种数据分析模式
@@ -128,16 +129,15 @@ class AnalyticsTools:
             date_range: 日期范围，格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
             min_frequency: 最小共现频次（keyword_cooccur模式），默认3
             top_n: 返回TOP N结果（keyword_cooccur模式），默认20
+            limit: 返回结果数量限制（别名 top_n）
 
         Returns:
             数据洞察分析结果字典
-
-        Examples:
-            - analyze_data_insights_unified(insight_type="platform_compare", topic="人工智能")
-            - analyze_data_insights_unified(insight_type="platform_activity", date_range={...})
-            - analyze_data_insights_unified(insight_type="keyword_cooccur", min_frequency=5)
         """
         try:
+            # 统一参数
+            effective_top_n = limit if limit is not None else top_n
+
             # 参数验证
             if insight_type not in ["platform_compare", "platform_activity", "keyword_cooccur"]:
                 raise InvalidParameterError(
@@ -158,7 +158,7 @@ class AnalyticsTools:
             else:  # keyword_cooccur
                 return self.analyze_keyword_cooccurrence(
                     min_frequency=min_frequency,
-                    top_n=top_n
+                    top_n=effective_top_n
                 )
 
         except MCPError as e:
@@ -549,7 +549,8 @@ class AnalyticsTools:
     def analyze_keyword_cooccurrence(
         self,
         min_frequency: int = 3,
-        top_n: int = 20
+        top_n: int = 20,
+        limit: Optional[int] = None
     ) -> Dict:
         """
         关键词共现分析 - 分析哪些关键词经常同时出现
@@ -557,28 +558,18 @@ class AnalyticsTools:
         Args:
             min_frequency: 最小共现频次
             top_n: 返回TOP N关键词对
+            limit: 返回结果数量限制（别名 top_n）
 
         Returns:
             关键词共现分析结果
-
-        Examples:
-            用户询问示例：
-            - "分析一下哪些关键词经常一起出现"
-            - "看看'人工智能'经常和哪些词一起出现"
-            - "找出今天新闻中的关键词关联"
-
-            代码调用示例：
-            >>> tools = AnalyticsTools()
-            >>> result = tools.analyze_keyword_cooccurrence(
-            ...     min_frequency=5,
-            ...     top_n=15
-            ... )
-            >>> print(result['cooccurrence_pairs'])
         """
         try:
+            # 统一参数
+            effective_top_n = limit if limit is not None else top_n
+
             # 参数验证
             min_frequency = validate_limit(min_frequency, default=3, max_limit=100)
-            top_n = validate_top_n(top_n, default=20)
+            effective_top_n = validate_top_n(effective_top_n, default=20)
 
             # 读取今天的数据
             all_titles, _, _ = self.data_service.parser.read_all_titles_for_date()
@@ -2318,7 +2309,8 @@ class AnalyticsTools:
         topic: Optional[str] = None,
         compare_type: str = "overview",
         platforms: Optional[List[str]] = None,
-        top_n: int = 10
+        top_n: int = 10,
+        limit: Optional[int] = None
     ) -> Dict:
         """
         时期对比分析 - 比较两个时间段的新闻数据
@@ -2337,14 +2329,18 @@ class AnalyticsTools:
                 - "platform_activity": 平台活跃度对比
             platforms: 平台过滤列表
             top_n: 返回 TOP N 结果，默认10
+            limit: 返回结果数量限制（别名 top_n）
 
         Returns:
             对比分析结果字典
         """
         try:
+            # 统一参数
+            effective_top_n = limit if limit is not None else top_n
+
             # 参数验证
             platforms = validate_platforms(platforms)
-            top_n = validate_top_n(top_n, default=10)
+            effective_top_n = validate_top_n(effective_top_n, default=10)
 
             if compare_type not in ["overview", "topic_shift", "platform_activity"]:
                 raise InvalidParameterError(

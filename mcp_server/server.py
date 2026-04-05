@@ -240,7 +240,9 @@ async def get_latest_news(
 async def get_trending_topics(
     top_n: int = 10,
     mode: str = 'current',
-    extract_mode: str = 'keywords'
+    extract_mode: str = 'keywords',
+    limit: Optional[int] = None,
+    include_url: bool = False
 ) -> str:
     """
     获取热点话题统计
@@ -253,18 +255,21 @@ async def get_trending_topics(
         extract_mode: 提取模式
             - "keywords": 统计预设关注词（基于 config/frequency_words.txt，默认）
             - "auto_extract": 自动从新闻标题提取高频词（无需预设，自动发现热点）
+        limit: 返回条数限制 (别名 top_n，建议 LLM 使用 limit 以保持参数一致性)
+        include_url: 是否包含 URL (目前仅对 auto_extract 模式有效)
 
     Returns:
         JSON格式的话题频率统计列表
 
     Examples:
         - 使用预设关注词: get_trending_topics(mode="current")
-        - 自动提取热点: get_trending_topics(extract_mode="auto_extract", top_n=20)
+        - 自动提取热点: get_trending_topics(extract_mode="auto_extract", limit=20)
     """
     tools = _get_tools()
     result = await asyncio.to_thread(
         tools['data'].get_trending_topics,
-        top_n=top_n, mode=mode, extract_mode=extract_mode
+        top_n=top_n, mode=mode, extract_mode=extract_mode,
+        limit=limit, include_url=include_url
     )
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -462,31 +467,25 @@ async def analyze_data_insights(
     topic: Optional[str] = None,
     date_range: Optional[Union[Dict[str, str], str]] = None,
     min_frequency: int = 3,
-    top_n: int = 20
+    top_n: int = 20,
+    limit: Optional[int] = None
 ) -> str:
     """
     统一数据洞察分析工具 - 整合多种数据分析模式
 
     Args:
         insight_type: 洞察类型，可选值：
-            - "platform_compare": 平台对比分析（对比不同平台对话题的关注度）
-            - "platform_activity": 平台活跃度统计（统计各平台发布频率和活跃时间）
-            - "keyword_cooccur": 关键词共现分析（分析关键词同时出现的模式）
+            - "platform_compare": 平台对比分析
+            - "platform_activity": 平台活跃度统计
+            - "keyword_cooccur": 关键词共现分析
         topic: 话题关键词（可选，platform_compare模式适用）
-        date_range: **【对象类型】** 日期范围（可选）
-                    - **格式**: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
-                    - **示例**: {"start": "2025-01-01", "end": "2025-01-07"}
-                    - **重要**: 必须是对象格式，不能传递整数
+        date_range: 日期范围，格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
         min_frequency: 最小共现频次（keyword_cooccur模式），默认3
         top_n: 返回TOP N结果（keyword_cooccur模式），默认20
+        limit: 返回结果数量限制 (别名 top_n，建议 LLM 使用 limit 以保持参数一致性)
 
     Returns:
         JSON格式的数据洞察分析结果
-
-    Examples:
-        - analyze_data_insights(insight_type="platform_compare", topic="人工智能")
-        - analyze_data_insights(insight_type="platform_activity", date_range={"start": "2025-01-01", "end": "2025-01-07"})
-        - analyze_data_insights(insight_type="keyword_cooccur", min_frequency=5, top_n=15)
     """
     tools = _get_tools()
     result = await asyncio.to_thread(
@@ -495,7 +494,8 @@ async def analyze_data_insights(
         topic=topic,
         date_range=date_range,
         min_frequency=min_frequency,
-        top_n=top_n
+        top_n=top_n,
+        limit=limit
     )
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -654,45 +654,23 @@ async def compare_periods(
     topic: Optional[str] = None,
     compare_type: str = "overview",
     platforms: Optional[List[str]] = None,
-    top_n: int = 10
+    top_n: int = 10,
+    limit: Optional[int] = None
 ) -> str:
     """
     时期对比分析 - 比较两个时间段的新闻数据
 
-    对比不同时期的热点话题、平台活跃度、新闻数量等维度。
-
-    **使用场景：**
-    - 对比本周和上周的热点变化
-    - 分析某个话题在两个时期的热度差异
-    - 查看各平台活跃度的周期性变化
-
     Args:
         period1: 第一个时间段（基准期）
-            - {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}: 日期范围
-            - "today", "yesterday", "this_week", "last_week", "this_month", "last_month": 预设值
-        period2: 第二个时间段（对比期，格式同 period1）
-        topic: 可选的话题关键词（聚焦特定话题的对比）
-        compare_type: 对比类型
-            - "overview": 总体概览（默认）- 新闻数量、关键词变化、TOP新闻
-            - "topic_shift": 话题变化分析 - 上升话题、下降话题、新出现话题
-            - "platform_activity": 平台活跃度对比 - 各平台新闻数量变化
-        platforms: 平台过滤列表，如 ['zhihu', 'weibo']
+        period2: 第二个时间段（对比期）
+        topic: 可选的话题关键词
+        compare_type: 对比类型 (overview/topic_shift/platform_activity)
+        platforms: 平台过滤列表
         top_n: 返回 TOP N 结果，默认10
+        limit: 返回结果数量限制 (别名 top_n，建议 LLM 使用 limit 以保持参数一致性)
 
     Returns:
-        JSON格式的对比分析结果，包含：
-        - periods: 两个时期的日期范围
-        - compare_type: 对比类型
-        - overview/topic_shift/platform_comparison: 具体对比结果（根据类型）
-
-    Examples:
-        - compare_periods(period1="last_week", period2="this_week")  # 周环比
-        - compare_periods(period1="last_month", period2="this_month", compare_type="topic_shift")
-        - compare_periods(
-            period1={"start": "2025-01-01", "end": "2025-01-07"},
-            period2={"start": "2025-01-08", "end": "2025-01-14"},
-            topic="人工智能"
-          )
+        JSON格式的对比分析结果
     """
     tools = _get_tools()
     result = await asyncio.to_thread(
@@ -702,7 +680,8 @@ async def compare_periods(
         topic=topic,
         compare_type=compare_type,
         platforms=platforms,
-        top_n=top_n
+        top_n=top_n,
+        limit=limit
     )
     return json.dumps(result, ensure_ascii=False, indent=2)
 

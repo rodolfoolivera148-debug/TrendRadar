@@ -625,6 +625,30 @@ def validate_threshold(
     return threshold
 
 
+def validate_feeds(feeds: Optional[Union[List[str], str]]) -> Optional[List[str]]:
+    """
+    验证 RSS 订阅源列表
+
+    Args:
+        feeds: 订阅源ID列表或字符串
+
+    Returns:
+        验证后的列表，如果输入为None则返回None
+    """
+    if feeds is None:
+        return None
+
+    if isinstance(feeds, str):
+        feeds = _parse_string_to_list(feeds)
+        if not feeds:
+            return None
+
+    if not isinstance(feeds, list):
+        raise InvalidParameterError("feeds 参数必须是列表或字符串类型")
+
+    return feeds
+
+
 def validate_date_query(
     date_query: str,
     allow_future: bool = False,

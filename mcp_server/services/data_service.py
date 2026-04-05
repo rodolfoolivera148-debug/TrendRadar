@@ -331,7 +331,8 @@ class DataService:
         self,
         top_n: int = 10,
         mode: str = "current",
-        extract_mode: str = "keywords"
+        extract_mode: str = "keywords",
+        include_url: bool = False
     ) -> Dict:
         """
         获取热点话题统计
@@ -344,15 +345,13 @@ class DataService:
             extract_mode: 提取模式
                 - "keywords": 统计预设关注词（基于 config/frequency_words.txt）
                 - "auto_extract": 自动从新闻标题提取高频词
+            include_url: 是否包含 URL (仅在 auto_extract 模式下有效)
 
         Returns:
             话题频率统计字典
-
-        Raises:
-            DataNotFoundError: 数据不存在
         """
         # 尝试从缓存获取
-        cache_key = f"trending_topics:{top_n}:{mode}:{extract_mode}"
+        cache_key = f"trending_topics:{top_n}:{mode}:{extract_mode}:{include_url}"
         cached = self.cache.get(cache_key, ttl=900)  # 15分钟缓存
         if cached:
             return cached
@@ -377,6 +376,7 @@ class DataService:
         # 统计词频
         word_frequency = Counter()
         keyword_to_news = {}
+        keyword_to_urls = {}
 
         # 预加载关键词数据（避免在循环内重复调用）
         if extract_mode == "keywords":
@@ -385,7 +385,7 @@ class DataService:
 
         # 遍历要处理的标题
         for platform_id, titles in titles_to_process.items():
-            for title in titles.keys():
+            for title, info in titles.items():
                 if extract_mode == "keywords":
                     # 基于预设关键词统计（支持正则匹配）
                     title_lower = title.lower()
@@ -403,6 +403,13 @@ class DataService:
                             if display_key not in keyword_to_news:
                                 keyword_to_news[display_key] = []
                             keyword_to_news[display_key].append(title)
+                            
+                            if include_url:
+                                if display_key not in keyword_to_urls:
+                                    keyword_to_urls[display_key] = []
+                                url = info.get("url") or info.get("mobileUrl")
+                                if url:
+                                    keyword_to_urls[display_key].append(url)
                             break  # 每个标题只计入第一个匹配的词组
 
                 elif extract_mode == "auto_extract":
@@ -413,6 +420,13 @@ class DataService:
                         if word not in keyword_to_news:
                             keyword_to_news[word] = []
                         keyword_to_news[word].append(title)
+                        
+                        if include_url:
+                            if word not in keyword_to_urls:
+                                keyword_to_urls[word] = []
+                            url = info.get("url") or info.get("mobileUrl")
+                            if url:
+                                keyword_to_urls[word].append(url)
 
         # 获取TOP N关键词
         top_keywords = word_frequency.most_common(top_n)
@@ -421,14 +435,19 @@ class DataService:
         topics = []
         for keyword, frequency in top_keywords:
             matched_news = keyword_to_news.get(keyword, [])
+            urls = list(set(keyword_to_urls.get(keyword, [])))[:3] # 每个关键词最多返回3个URL
 
-            topics.append({
+            topic_item = {
                 "keyword": keyword,
                 "frequency": frequency,
                 "matched_news": len(set(matched_news)),  # 去重后的新闻数量
                 "trend": "stable",
                 "weight_score": 0.0
-            })
+            }
+            if include_url and urls:
+                topic_item["urls"] = urls
+                
+            topics.append(topic_item)
 
         # 构建结果
         result = {

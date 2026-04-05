@@ -78,6 +78,9 @@ class SearchTools:
         try:
             # 参数验证
             query = validate_keyword(query)
+            platforms = validate_platforms(platforms)
+            from ..utils.validators import validate_feeds
+            feeds = validate_feeds(feeds)
 
             if search_mode not in ["keyword", "fuzzy", "entity"]:
                 raise InvalidParameterError(

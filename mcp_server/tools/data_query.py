@@ -135,7 +135,9 @@ class DataQueryTools:
         self,
         top_n: Optional[int] = None,
         mode: Optional[str] = None,
-        extract_mode: Optional[str] = None
+        extract_mode: Optional[str] = None,
+        limit: Optional[int] = None,
+        include_url: bool = False
     ) -> Dict:
         """
         获取热点话题统计
@@ -148,20 +150,20 @@ class DataQueryTools:
             extract_mode: 提取模式
                 - "keywords": 统计预设关注词（基于 config/frequency_words.txt，默认）
                 - "auto_extract": 自动从新闻标题提取高频词
+            limit: 返回条数限制（别名 top_n）
+            include_url: 是否包含 URL（目前仅对 auto_extract 有效）
 
         Returns:
             话题频率统计字典
-
-        Example:
-            >>> tools = DataQueryTools()
-            >>> # 使用预设关注词
-            >>> result = tools.get_trending_topics(top_n=5, mode="current")
-            >>> # 自动提取高频词
-            >>> result = tools.get_trending_topics(top_n=10, extract_mode="auto_extract")
         """
         try:
+            # 统一参数
+            effective_top_n = top_n
+            if limit is not None:
+                effective_top_n = limit
+
             # 参数验证
-            top_n = validate_top_n(top_n, default=10)
+            effective_top_n = validate_top_n(effective_top_n, default=10)
             valid_modes = ["daily", "current"]
             mode = validate_mode(mode, valid_modes, default="current")
 
@@ -180,9 +182,10 @@ class DataQueryTools:
 
             # 获取趋势话题
             trending_result = self.data_service.get_trending_topics(
-                top_n=top_n,
+                top_n=effective_top_n,
                 mode=mode,
-                extract_mode=extract_mode
+                extract_mode=extract_mode,
+                include_url=include_url
             )
 
             return {
@@ -298,7 +301,7 @@ class DataQueryTools:
 
     def get_latest_rss(
         self,
-        feeds: Optional[List[str]] = None,
+        feeds: Optional[Union[List[str], str]] = None,
         days: int = 1,
         limit: Optional[int] = None,
         include_summary: bool = False
@@ -307,7 +310,7 @@ class DataQueryTools:
         获取最新的 RSS 数据（支持多日查询）
 
         Args:
-            feeds: RSS 源 ID 列表，如 ['hacker-news', '36kr']
+            feeds: RSS 源 ID 列表，如 ['hacker-news', '36kr'] 或字符串 'hacker-news'
             days: 获取最近 N 天的数据，默认 1（仅今天），最大 30 天
             limit: 返回条数限制，默认50
             include_summary: 是否包含摘要，默认False（节省token）
@@ -317,6 +320,7 @@ class DataQueryTools:
         """
         try:
             limit = validate_limit(limit, default=50)
+            feeds = validate_feeds(feeds)
 
             rss_list = self.data_service.get_latest_rss(
                 feeds=feeds,
@@ -354,7 +358,7 @@ class DataQueryTools:
     def search_rss(
         self,
         keyword: str,
-        feeds: Optional[List[str]] = None,
+        feeds: Optional[Union[List[str], str]] = None,
         days: int = 7,
         limit: Optional[int] = None,
         include_summary: bool = False
@@ -375,6 +379,7 @@ class DataQueryTools:
         try:
             keyword = validate_keyword(keyword)
             limit = validate_limit(limit, default=50)
+            feeds = validate_feeds(feeds)
 
             if days < 1 or days > 30:
                 days = 7
